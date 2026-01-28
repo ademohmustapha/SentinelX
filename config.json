@@ -1,0 +1,6 @@
+{
+    "threads": 5,
+    "timeout": 8,
+    "scan_common_paths": true
+}
+
