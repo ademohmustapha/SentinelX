@@ -1,4 +1,4 @@
-# main.py - SentinelX Entry Point with HTML & PDF Reporting
+# main.py - Kryphorix Entry Point with HTML & PDF Reporting
 
 import os
 from datetime import datetime
@@ -21,7 +21,7 @@ from core.report import generate_pdf
 # ---------------------------
 def main_menu():
     print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("       SentinelX Scanner      ")
+    print("       Kryphorix Scanner      ")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
     print("1. Web Application Scan")
     print("2. Active Directory Scan")
@@ -37,14 +37,14 @@ def main_menu():
 def generate_html_report(findings, filename=None):
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"reports/SentinelX_Report_{timestamp}.html"
+        filename = f"reports/Kryphorix_Report_{timestamp}.html"
 
     os.makedirs("reports", exist_ok=True)
 
     html_content = f"""
     <html>
     <head>
-        <title>SentinelX Report</title>
+        <title>Kryphorix Report</title>
         <style>
             body {{ font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; }}
             h1 {{ color:#2E86C1; }}
@@ -59,7 +59,7 @@ def generate_html_report(findings, filename=None):
         </style>
     </head>
     <body>
-        <h1>SentinelX Security Assessment Report</h1>
+        <h1>Kryphorix Security Assessment Report</h1>
         <p>Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
         <table>
             <tr>
@@ -109,7 +109,7 @@ def main():
         elif choice == "6":
             findings = wireless_scan()
         elif choice == "0":
-            print("Exiting SentinelX")
+            print("Exiting Kryphorix")
             break
         else:
             print("Invalid choice, try again.")
