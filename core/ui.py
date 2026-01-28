@@ -13,7 +13,7 @@ class UI:
 def banner():
     print(UI.CYAN + UI.BOLD)
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("        SentinelX Scanner     ")
+    print("        Kryphorix Scanner     ")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" + UI.END)
 
 def section(title):
