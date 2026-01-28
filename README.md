@@ -5,7 +5,7 @@
 ```
 # 🛡️ Kryphorix — Advanced Security Assessment Framework
 
-**Kryphorix** is a modular security assessment and vulnerability scanning framework designed for comprehensive infrastructure, web, API, and directory security analysis.
+Kryphorix is a modular security assessment and vulnerability scanning framework designed for comprehensive infrastructure, web, API, and directory security analysis.
 
 Built for security researchers, system administrators, and penetration testers, Kryphorix delivers automated risk detection, structured reporting, and actionable remediation guidance.
 
@@ -13,7 +13,7 @@ Built for security researchers, system administrators, and penetration testers, 
 
 ## 🚀 Core Capabilities
 
-Kryphorix performs **multi-surface security assessments** across:
+Kryphorix performs multi-surface security assessments across:
 
 | Module | Purpose |
 |--------|---------|
@@ -119,7 +119,7 @@ or
 
 ## ⚠️ Legal Disclaimer
 
-Kryphorix is intended **strictly for authorized security testing and educational purposes**.
+Kryphorix is intended strictly for authorized security testing and educational purposes.
 
 The author is not responsible for misuse or unauthorized deployment.
 
