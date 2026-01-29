@@ -1,5 +1,5 @@
 from core.engine import run_parallel
-from core.reporter import generate_pdf, export_json
+from core.report import generate_pdf, export_json
 from plugins.plugin_loader import load_plugins
 
 import argparse

@@ -35,7 +35,7 @@ def check_port(host, port, service, findings):
     finally:
         s.close()
 
-def active_directory_scan():
+def ad_scan():
     banner()
     target = input("Enter Domain Controller IP: ").strip()
 
