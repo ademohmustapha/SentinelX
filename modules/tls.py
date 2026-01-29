@@ -32,7 +32,7 @@ def tls_check(host=None):
 
             protocol = s.version()
             good(f"TLS Protocol Version: {protocol}")
-            if protocol in ["SSLv2", "SSLv3", "TLSv1", "TLSv1.1"]:
+            if protocol in ["SSLv2","SSLv3","TLSv1","TLSv1.1"]:
                 findings.add(Finding(
                     "Weak TLS/SSL Protocol",
                     "Medium",
@@ -47,5 +47,5 @@ def tls_check(host=None):
     for sev,count in findings.summary().items():
         print(f"{sev}: {count}")
 
-    return findings
+    return findings.findings
 

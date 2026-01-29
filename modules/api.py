@@ -67,5 +67,5 @@ def api_scan(url=None):
     for sev,count in findings.summary().items():
         print(f"{sev}: {count}")
 
-    return findings
+    return findings.findings
 

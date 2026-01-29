@@ -59,5 +59,5 @@ def ad_scan(target=None):
     for k,v in findings.summary().items():
         print(f"{k}: {v}")
 
-    return findings
+    return findings.findings
 

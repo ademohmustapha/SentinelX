@@ -1,23 +1,19 @@
-from core.engine import run_parallel
 from core.report import generate_pdf, export_json
 from plugins.plugin_loader import load_plugins
-
-import argparse
-import sys
+import argparse, sys
 
 from modules.web import web_scan
 from modules.api import api_scan
 from modules.ad import ad_scan
 from modules.ports import port_scan
 from modules.tls import tls_check
+from modules.wireless import wireless_scan
 
 from rich.console import Console
 from rich.table import Table
-from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.panel import Panel
+from rich.progress import Progress, BarColumn, TimeRemainingColumn, TextColumn
 from rich.live import Live
-
-from core.findings import FindingsManager
 
 console = Console()
 
@@ -31,7 +27,7 @@ def banner():
 
 
 # =========================
-# Add module name to findings
+# Tag findings with module
 # =========================
 def tag_module(findings, module_name):
     for f in findings:
@@ -40,7 +36,7 @@ def tag_module(findings, module_name):
 
 
 # =========================
-# Display summary in rich table
+# Display summary table
 # =========================
 def display_summary(findings):
     if not findings:
@@ -78,10 +74,100 @@ def display_summary(findings):
 
 
 # =========================
-# Live scan dashboard
+# Run a module on multiple targets
 # =========================
-def live_scan_dashboard(scan_tasks):
+def run_module(module_name, func, targets):
+    results = []
+    for t in targets:
+        try:
+            res = func(t)
+            results += tag_module(res, module_name)
+        except Exception as e:
+            console.print(f"[red]Error scanning {t}: {e}[/red]")
+    return results
+
+
+# =========================
+# Parse comma-separated targets
+# =========================
+def parse_targets(value):
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+
+# =========================
+# CLI Mode
+# =========================
+def cli_mode(args):
     findings = []
+
+    if args.web:
+        findings += run_module("Web", web_scan, parse_targets(args.web))
+    if args.api:
+        findings += run_module("API", api_scan, parse_targets(args.api))
+    if args.ad:
+        findings += run_module("AD", ad_scan, parse_targets(args.ad))
+    if args.ports:
+        findings += run_module("Ports", port_scan, parse_targets(args.ports))
+    if args.tls:
+        findings += run_module("TLS", tls_check, parse_targets(args.tls))
+    if args.wifi:
+        findings += run_module("Wireless", wireless_scan, ["local"])
+
+    # Run plugins
+    for plugin in load_plugins():
+        plugin_results = plugin()
+        findings += tag_module(plugin_results, "Plugin")
+
+    # Display summary & generate reports
+    display_summary(findings)
+    if findings:
+        generate_pdf(findings)
+        export_json(findings)
+
+
+# =========================
+# Menu Mode
+# =========================
+def menu_mode():
+    banner()
+    console.print(Panel(
+        "[bold]Menu Mode[/bold]\n"
+        "Select a module to scan:\n"
+        "1. Web\n2. API\n3. Active Directory\n"
+        "4. Ports\n5. TLS/SSL\n6. Wireless\n0. Exit"
+    ))
+
+    choice = input("\nSelect option: ").strip()
+    scan_tasks = []
+
+    if choice == "1":
+        targets = input("Web URLs (comma-separated): ").split(",")
+        scan_tasks.append(("Web", web_scan, parse_targets(",".join(targets))))
+    elif choice == "2":
+        targets = input("API URLs (comma-separated): ").split(",")
+        scan_tasks.append(("API", api_scan, parse_targets(",".join(targets))))
+    elif choice == "3":
+        targets = input("Domain Controller IPs/Hosts (comma-separated): ").split(",")
+        scan_tasks.append(("AD", ad_scan, parse_targets(",".join(targets))))
+    elif choice == "4":
+        targets = input("Hosts to scan ports (comma-separated): ").split(",")
+        scan_tasks.append(("Ports", port_scan, parse_targets(",".join(targets))))
+    elif choice == "5":
+        targets = input("Hosts to check TLS/SSL (comma-separated): ").split(",")
+        scan_tasks.append(("TLS", tls_check, parse_targets(",".join(targets))))
+    elif choice == "6":
+        scan_tasks.append(("Wireless", wireless_scan, ["local"]))
+    elif choice == "0":
+        sys.exit()
+    else:
+        console.print("[red]Invalid choice[/red]")
+        return
+
+    findings = []
+
+    # ---------------------
+    # Run scan tasks with live dashboard
+    # ---------------------
     progress = Progress(
         TextColumn("[bold blue]{task.fields[module]}[/bold blue]"),
         BarColumn(),
@@ -94,118 +180,24 @@ def live_scan_dashboard(scan_tasks):
             if not targets:
                 continue
             task_id = progress.add_task("", total=len(targets), module=name)
-            live.update(Panel(f"[bold cyan]Starting {name} scans[/bold cyan]", title="Kryphorix Dashboard"))
-            for target in targets:
+            live.update(Panel(f"[bold cyan]Starting {name} scans[/bold cyan]", title="KryPhorix Dashboard"))
+            for t in targets:
                 try:
-                    res = func(target)
-                    # --- Option 2 fix ---
-                    if isinstance(res, FindingsManager):
-                        res = res.findings
-                    res = tag_module(res, name)
-                    findings += res
+                    res = func(t)
+                    findings += tag_module(res, name)
                 except Exception as e:
-                    console.print(f"[red]Error scanning {target}: {e}[/red]")
+                    console.print(f"[red]Error scanning {t}: {e}[/red]")
                 progress.advance(task_id)
-            live.update(Panel(f"[bold green]{name} scans complete![/bold green]", title="Kryphorix Dashboard"))
-
-    return findings
-
-
-# =========================
-# MENU MODE
-# =========================
-def menu_mode():
-    banner()
-    console.print(Panel(
-        "[bold]Menu Mode[/bold]\nSelect a module to scan:\n"
-        "1. Web\n2. API\n3. Active Directory\n4. Ports\n5. TLS/SSL\n0. Exit"
-    ))
-
-    choice = input("\nSelect option: ").strip()
-    findings = []
-    scan_tasks = []
-
-    if choice == "1":
-        targets = input("Web URLs (comma-separated): ").split(",")
-        scan_tasks.append(("Web", web_scan, [t.strip() for t in targets]))
-    elif choice == "2":
-        targets = input("API URLs (comma-separated): ").split(",")
-        scan_tasks.append(("API", api_scan, [t.strip() for t in targets]))
-    elif choice == "3":
-        targets = input("Domain Controller IPs/Hosts (comma-separated): ").split(",")
-        scan_tasks.append(("AD", ad_scan, [t.strip() for t in targets]))
-    elif choice == "4":
-        targets = input("Hosts to scan ports (comma-separated): ").split(",")
-        scan_tasks.append(("Ports", port_scan, [t.strip() for t in targets]))
-    elif choice == "5":
-        targets = input("Hosts to check TLS/SSL (comma-separated): ").split(",")
-        scan_tasks.append(("TLS", tls_check, [t.strip() for t in targets]))
-    elif choice == "0":
-        sys.exit()
-    else:
-        console.print("[red]Invalid choice[/red]")
-        return
-
-    findings = live_scan_dashboard(scan_tasks)
+            live.update(Panel(f"[bold green]{name} scans complete![/bold green]", title="KryPhorix Dashboard"))
 
     # Run plugins
     for plugin in load_plugins():
-        plugin_results = plugin()
-        if isinstance(plugin_results, FindingsManager):
-            plugin_results = plugin_results.findings
-        plugin_results = tag_module(plugin_results, "Plugin")
-        findings += plugin_results
+        findings += tag_module(plugin(), "Plugin")
 
-    # Display summary & generate reports
     display_summary(findings)
     if findings:
         generate_pdf(findings)
         export_json(findings)
-
-
-# =========================
-# CLI MODE
-# =========================
-def cli_mode(args):
-    findings = []
-    scan_tasks = []
-
-    if args.web:
-        scan_tasks.append(("Web", web_scan, [args.web]))
-    if args.api:
-        scan_tasks.append(("API", api_scan, [args.api]))
-    if args.ad:
-        scan_tasks.append(("AD", ad_scan, [args.ad]))
-    if args.ports:
-        scan_tasks.append(("Ports", port_scan, [args.ports]))
-    if args.tls:
-        scan_tasks.append(("TLS", tls_check, [args.tls]))
-    if args.fullscan:
-        scan_tasks += [
-            ("Web", web_scan, [args.fullscan]),
-            ("API", api_scan, [args.fullscan]),
-            ("Ports", port_scan, [args.fullscan]),
-            ("TLS", tls_check, [args.fullscan])
-        ]
-
-    if scan_tasks:
-        findings = live_scan_dashboard(scan_tasks)
-
-    # Run plugins
-    for plugin in load_plugins():
-        plugin_results = plugin()
-        if isinstance(plugin_results, FindingsManager):
-            plugin_results = plugin_results.findings
-        plugin_results = tag_module(plugin_results, "Plugin")
-        findings += plugin_results
-
-    # Display summary & generate reports
-    display_summary(findings)
-    if findings:
-        generate_pdf(findings)
-        export_json(findings)
-    else:
-        console.print("[yellow]No scan option provided.[/yellow]")
 
 
 # =========================
@@ -213,12 +205,12 @@ def cli_mode(args):
 # =========================
 def parse_args():
     parser = argparse.ArgumentParser(description="KryPhorix Security Framework")
-    parser.add_argument("--web", help="Scan a web application")
-    parser.add_argument("--api", help="Scan an API endpoint")
-    parser.add_argument("--ad", help="Scan Active Directory")
-    parser.add_argument("--ports", help="Scan open ports")
-    parser.add_argument("--tls", help="Check TLS/SSL configuration")
-    parser.add_argument("--fullscan", help="Run all scans on target")
+    parser.add_argument("--web", help="Scan web URLs (comma-separated)")
+    parser.add_argument("--api", help="Scan API endpoints (comma-separated)")
+    parser.add_argument("--ad", help="Scan Active Directory hosts (comma-separated)")
+    parser.add_argument("--ports", help="Scan open ports (comma-separated)")
+    parser.add_argument("--tls", help="Check TLS/SSL hosts (comma-separated)")
+    parser.add_argument("--wifi", action="store_true", help="Scan available Wi-Fi networks")
     return parser.parse_args()
 
 
@@ -227,9 +219,9 @@ def parse_args():
 # =========================
 if __name__ == "__main__":
     args = parse_args()
+    banner()
     if len(sys.argv) == 1:
         menu_mode()
     else:
-        banner()
         cli_mode(args)
 

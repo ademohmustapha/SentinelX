@@ -25,7 +25,7 @@ def wireless_scan(interface=None):
 
         if not output:
             info("No Wi-Fi networks found")
-            return findings
+            return []
 
         networks = output.split("\n")[1:]  # Skip header line
         for net in networks:
@@ -63,5 +63,5 @@ def wireless_scan(interface=None):
     for sev, count in findings.summary().items():
         print(f"{sev}: {count}")
 
-    return findings
+    return findings.findings
 

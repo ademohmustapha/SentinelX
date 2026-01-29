@@ -42,5 +42,5 @@ def port_scan(host=None):
     for sev,count in findings.summary().items():
         print(f"{sev}: {count}")
 
-    return findings
+    return findings.findings
 

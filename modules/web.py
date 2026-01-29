@@ -22,18 +22,15 @@ def web_scan(url=None):
     findings = FindingsManager()
     headers = {"User-Agent": "Mozilla/5.0"}
 
-    # -------------------------
-    # HTTP Headers & Server Info
-    # -------------------------
+    # HTTP Headers & Cookies
     section("HTTP HEADERS & SERVER INFO")
     try:
         r = requests.get(url, headers=headers, timeout=10)
         good(f"Status Code: {r.status_code}")
         good(f"Server: {r.headers.get('Server','Unknown')}")
 
-        # Check security headers
-        for h in ["Content-Security-Policy", "Strict-Transport-Security",
-                  "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy"]:
+        for h in ["Content-Security-Policy","Strict-Transport-Security",
+                  "X-Content-Type-Options","X-Frame-Options","Referrer-Policy"]:
             if h not in r.headers:
                 findings.add(Finding(
                     f"Missing {h}",
@@ -42,7 +39,6 @@ def web_scan(url=None):
                     f"Configure {h} header properly"
                 ))
 
-        # Check cookies
         for c in r.cookies:
             if not c.secure or not c.has_nonstandard_attr("HttpOnly"):
                 findings.add(Finding(
@@ -51,14 +47,11 @@ def web_scan(url=None):
                     "Cookie lacks HttpOnly or Secure flags",
                     "Set Secure and HttpOnly flags for cookies"
                 ))
-
     except requests.exceptions.RequestException as e:
         bad(f"Request failed: {e}")
-        return findings
+        return []
 
-    # -------------------------
     # TLS check
-    # -------------------------
     section("TLS CHECK")
     hostname = parsed.hostname
     port = parsed.port or 443
@@ -78,9 +71,7 @@ def web_scan(url=None):
     except Exception as e:
         warn(f"TLS check failed: {e}")
 
-    # -------------------------
     # Common paths
-    # -------------------------
     section("COMMON PATHS")
     info("Scanning common paths...")
     for path in COMMON_PATHS:
@@ -102,5 +93,6 @@ def web_scan(url=None):
     for k,v in summary.items():
         print(f"{k}: {v}")
 
-    return findings
+    return findings.findings
+
 
